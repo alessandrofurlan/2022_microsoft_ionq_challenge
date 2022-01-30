@@ -1,8 +1,13 @@
 # **Q-TETRIS**
 
-**Description:**
-Qtetris is inspired from tetris game. In qtetris there are finite shapes that user have to arrange to complete one line similar to classical tetris but these shapes are made up of Quantum gates/ operators. For simplicity the rotation angle theta is considered as π radians
-For example:
+A as hard as (real) quantum computation way to play tetris.
+
+## Team
+Alessandro Credidio Furlan (Brazil), Lucas Moura de Almeida (Brazil), Prathamesh Sanjay Bhole (India) and Zhang Jie (China).
+
+## Project Description
+
+Qtetris is the game developed by our team as part of the iQuHACK 2022 (Microsoft + IonQ division). As the name tells us, Qtetris is inspired in the classical game Tetris, with a taste of quantum computation. In this game, random block sets are generated with a quantum random number generator. The blocks themselves are quantum gates (X, Y, Z, H etc.). Another big difference, which makes the game really hard, is the scoring system. A entire row is eliminated only when 7 or more blocks compose into an indentity operator. Also, in order to score, you must combine 3 or more blocks in a row that compose for an identity. Some examples of block sets are in the following image:
 
 ![](.files/2022-01-30-12-35-55-image.png)
 
