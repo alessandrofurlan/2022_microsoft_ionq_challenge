@@ -1,138 +1,48 @@
 import pygame
 import random
+import config
 
 from services.block_set import BlockSet
 
 pygame.font.init()
 
-import config
-
 # SHAPE FORMATS
-
-S = [['.....',
-      '.....',
-      '..00.',
-      '.00..',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..00.',
-      '...0.',
-      '.....']]
-
-Z = [['.....',
-      '.....',
-      '.00..',
-      '..00.',
-      '.....'],
-     ['.....',
-      '..0..',
-      '.00..',
-      '.0...',
-      '.....']]
-
-I = [['..0..',
-      '..0..',
-      '..0..',
-      '..0..',
-      '.....'],
-     ['.....',
-      '0000.',
-      '.....',
-      '.....',
-      '.....']]
-
-O = [['.....',
-      '.....',
-      '.00..',
-      '.00..',
-      '.....']]
-
-J = [['.....',
-      '.0...',
-      '.000.',
-      '.....',
-      '.....'],
-     ['.....',
-      '..00.',
-      '..0..',
-      '..0..',
-      '.....'],
-     ['.....',
-      '.....',
-      '.000.',
-      '...0.',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..0..',
-      '.00..',
-      '.....']]
-
-L = [['.....',
-      '...0.',
-      '.000.',
-      '.....',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..0..',
-      '..00.',
-      '.....'],
-     ['.....',
-      '.....',
-      '.000.',
-      '.0...',
-      '.....'],
-     ['.....',
-      '.00..',
-      '..0..',
-      '..0..',
-      '.....']]
-
-T = [['.....',
-      '..0..',
-      '.000.',
-      '.....',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..00.',
-      '..0..',
-      '.....'],
-     ['.....',
-      '.....',
-      '.000.',
-      '..0..',
-      '.....'],
-     ['.....',
-      '..0..',
-      '.00..',
-      '..0..',
-      '.....']]
-
-shapes = [S, Z, I, O, J, L, T]
+shapes = [config.S, config.Z, config.I, config.O, config.J, config.L, config.T]
+qops_shape = []
 shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128)]
+
+quantum_operator = ["X","Y","Z","Rx","Ry","Rz","H","I"]
+
 possible_colors = {
     'X': (0, 255, 0),
     'Y': (255, 0, 0),
     'Z': (0, 255, 255),
     'Rx': (255, 255, 0),
     'Ry': (255, 165, 0),
-    'Rh': (0, 0, 255),
+    'Rz': (0, 0, 255),
     'H': (128, 0, 128),
     'I': (128, 128, 0),
 }
 
+def colours_to_qgates(colours_list):
+    qgates = []
+    key_list = list(possible_colors.keys())
+    val_list = list(possible_colors.values())
+    for i in range(len(colours_list)):
+        if (colours_list[i] in val_list):
+            position = val_list.index(colours_list[i])
+            qgates.append(key_list[position])
+    return qgates
 
-class Piece(object):  # *
+class Piece(object):
     def __init__(self, x, y, shape):
         self.x = x
         self.y = y
         self.shape = shape
+        self.operator = config.qops[shapes.index(shape)]
         self.color = shape_colors[shapes.index(shape)]
         self.rotation = 0
-        # self.BlockSet = BlockSet()
+        self.BlockSet = BlockSet()
 
 
 def create_grid(locked_pos={}):  # *
@@ -205,14 +115,17 @@ def draw_grid(surface, grid):
             pygame.draw.line(surface, (128, 128, 128), (sx + j*config.block_size, sy),(sx + j*config.block_size, sy + config.play_height))
 
 
-def clear_rows(grid, locked):
+def clear_row_combinations(grid, locked):
 
     inc = 0
     for i in range(len(grid)-1, -1, -1):
         row = grid[i]
         if (0,0,0) not in row:
+            qgates = colours_to_qgates(row)
+            check_combinations_length = execute_qc(qgates) #find combinations from maximum to minimum
+            
             inc += 1
-            ind = i
+            index = i
             for j in range(len(row)):
                 try:
                     del locked[(j,i)]
@@ -236,15 +149,16 @@ def draw_next_shape(shape, surface):
     sx = config.top_left_x + config.play_width + 50
     sy = config.top_left_y + config.play_height/2 - 100
     format = shape.shape[shape.rotation % len(shape.shape)]
-
+    
     for i, line in enumerate(format):
         row = list(line)
         for j, column in enumerate(row):
             if column == '0':
-                pygame.draw.rect(surface, shape.color, (sx + j*config.block_size, sy + i*config.block_size, config.block_size, config.block_size), 0)
-
-    surface.blit(label, (sx + 10, sy - 30))
-
+                index = shape.BlockSet.operators[j].index
+                surface.blit(config.qops[index], pygame.Rect(sx + j*config.block_size, sy + i*config.block_size, config.block_size, config.block_size))
+    
+    surface.blit(label, (sx + 10, sy - 30))    
+    
 
 def update_score(nscore):
     score = max_score()
@@ -284,7 +198,7 @@ def draw_window(surface, grid, score=0, last_score = 0):
     # last score
     label = font.render('High Score: ' + last_score, 1, (255,255,255))
 
-    sx = config.top_left_x - 200
+    sx = config.top_left_x - 250
     sy = config.top_left_y + 200
 
     surface.blit(label, (sx + 20, sy + 160))
@@ -369,7 +283,7 @@ def main(win):  # *
             current_piece = next_piece
             next_piece = get_shape()
             change_piece = False
-            score += clear_rows(grid, locked_positions) * 10
+            score += clear_row_combinations(grid, locked_positions) * 10
 
         draw_window(win, grid, score, last_score)
         draw_next_shape(next_piece, win)
@@ -402,3 +316,27 @@ win = pygame.display.set_mode((config.s_width, config.s_height))
 pygame.display.set_caption('Tetris')
 main_menu(win)
 
+row = [(255, 165, 0), (0, 255, 0), (255, 255, 0), 
+       (255, 255, 0), (128, 0, 128), (128, 0, 128), 
+       (128, 0, 128), (0, 255, 0), (0, 255, 0), (128, 0, 128)]
+
+possible_colors = {
+    'X': (0, 255, 0),
+    'Y': (255, 0, 0),
+    'Z': (0, 255, 255),
+    'Rx': (255, 255, 0),
+    'Ry': (255, 165, 0),
+    'Rz': (0, 0, 255),
+    'H': (128, 0, 128),
+    'I': (128, 128, 0),
+}
+def colours_to_qgates(colours_list):
+    qgates = []
+    key_list = list(possible_colors.keys())
+    val_list = list(possible_colors.values())
+    for i in range(len(colours_list)):
+        if (colours_list[i] in val_list):
+            position = val_list.index(colours_list[i])
+            qgates.append(key_list[position])
+    return qgates
+t = colours_to_qgates(row)
